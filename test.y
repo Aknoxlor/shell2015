@@ -2,29 +2,41 @@
 void yyerror (char *s);
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 int mainNumber;
 %}
 
 %union {char id; char *word;}
-%start line
 %token cd_command
-%token ls_command
+%token bye
 %token exit_command
 %token <word> letters
-%type <id> line
-%type <id> action
+
 
 %%
+command:
+| command '\n'
+| command change_d
+| command home
+| command exit
+;
 
-line :  action '\n'	{;}
-     |	exit_command '\n'	{exit(0);}
-     |	line action '\n'	{;}
-     |	line exit_command '\n'	{exit(0);}
-     ;
-action:	cd_command letters	{printf("%s",$2);}
-    |	cd_command		{;}
-    |	ls_command		{;}
-    ;
+change_d:
+	cd_command letters	
+		{
+		printf("%s...\n",$2);
+		};
+home :	
+	cd_command		
+		{
+		printf("GOING HOME\n");
+		chdir(getenv("HOME"));
+		
+		};
+exit:  bye
+	{ printf("leaving the shell \n");
+	exit(0);	
+	};
 %%
 
 int main (void)
@@ -34,7 +46,6 @@ int main (void)
 }
 
 void yyerror (char *s) {fprintf (stderr, "%s\n", s);} 
-
 
 
 

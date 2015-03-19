@@ -5,7 +5,7 @@
 %%
 "CD"		{return cd_command;}
 "LS"		{return exit_command;}
-"Bye"		{return ls_command;}
+"BYE"		{return bye;}
 [a-zA-z]+	{yylval.word = strdup(yytext); return letters;}
 [ \t]		{;}
 "\n"		{return yytext[0];}
