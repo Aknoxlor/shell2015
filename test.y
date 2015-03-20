@@ -1,5 +1,6 @@
 %{
 void yyerror (char *s);
+void sysCall(char *command, char *arg);
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -7,49 +8,32 @@ void yyerror (char *s);
 #include <string.h>
 %}
 
-%union {char id; char *word;}
-%token cd_command
-%token bye
+%union {int num; char *word;}
+%start start
+%token execute
 %token exit_command
-%token <word> letters
-
+%token cd_command
+%token <word> text
+%type <word> syscall
 
 %%
-command:
-| command '\n'
-| command change_d
-| command home
-| command exit
+start:	execute			{;}
+|	cd_command execute	{;}
+|	exit_command execute	{printf("leaving the shell \n"); exit(0);}
+|	syscall execute		{;} //syscall
+|	start execute
+|	start cd_command execute	{;}
+|	start exit_command execute	{printf("leaving the shell \n"); exit(0);}
+|	start syscall execute		{;} //syscall
 ;
 
-change_d:
-	cd_command letters	
-		{
-		printf("%s...\n",$2);
-		};
-|	letters
-		{
-		char command[] = "/usr/bin/";
-		printf("Searching bin for %s... \n",$1);
-		strcat(command,$1);
-		if(access (command, F_OK) == -1)
-			printf("Command not found\n");
-		else
-			printf("%s found\n", $1);
-			execl (command, command, (char *) NULL);
-		};
+//cd_command: {printf("PANIC\n");}
+//;
+
+syscall: text		{sysCall($$, NULL);} //syscall
+|	text text	{sysCall($$, $1);} //syscall + arguments
 ;
-home :	
-	cd_command		
-		{
-		printf("GOING HOME\n");
-		chdir(getenv("HOME"));
-		
-		};
-exit:  bye
-	{ printf("leaving the shell \n");
-	exit(0);	
-	};
+
 %%
 
 int main (void)
@@ -58,6 +42,34 @@ int main (void)
 }
 
 void yyerror (char *s) {fprintf (stderr, "%s\n", s);} 
+
+void sysCall(char *command, char *arg)
+{
+	char strcatIntensifies[] = "/";
+	strcat(strcatIntensifies, command);
+	command = strcatIntensifies;
+
+	printf("Searching for %s... \n",command);
+
+	char * parse;
+	parse = strtok(getenv("PATH"),":");
+	char fullCommand[20];
+	while(parse != NULL)
+	{
+		printf("Searching %s \n",parse);
+		strcpy(fullCommand,parse);
+		strcat(fullCommand,command);
+		printf("DEBUG: %s\n",fullCommand);
+		if(access(fullCommand, F_OK) != -1)
+		{
+			printf("%s found\n", command);
+			execl (fullCommand, fullCommand, (char *) NULL);
+			return;
+		}
+		parse = strtok(NULL,":");
+	}
+	printf("Command not found\n");
+}
 
 
 
